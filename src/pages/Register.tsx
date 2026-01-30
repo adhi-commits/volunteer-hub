@@ -5,7 +5,7 @@ import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 import { validateEmail, validatePassword, validatePhone } from '../utils/validation';
 
-type Role = 'volunteer' | 'ngo';
+type Role = 'volunteer' | 'organizer';
 
 interface RegisterForm {
   role: Role;
@@ -20,17 +20,20 @@ interface RegisterForm {
   password: string;
   confirmPassword: string;
   terms: boolean;
+  idFile: File | null;
 }
 
 type RegisterErrors = Partial<Record<keyof RegisterForm, string>>;
 
 const skillOptions = [
-  { value: 'photography', label: 'Photography' },
+  { value: 'social-service', label: 'Social Service' },
   { value: 'first-aid', label: 'First Aid' },
-  { value: 'public-speaking', label: 'Public Speaking' },
-  { value: 'social-media', label: 'Social Media' },
+  { value: 'healthcare-support', label: 'Healthcare Support' },
+  { value: 'elderly-care', label: 'Elderly Care' },
+  { value: 'child-care', label: 'Child Care' },
   { value: 'teaching', label: 'Teaching' },
-  { value: 'technical', label: 'Technical' },
+  { value: 'counseling', label: 'Counseling' },
+  { value: 'disaster-relief', label: 'Disaster Relief' },
 ];
 
 const Register: React.FC = () => {
@@ -50,6 +53,7 @@ const Register: React.FC = () => {
     password: '',
     confirmPassword: '',
     terms: false,
+    idFile: null,
   });
   const [errors, setErrors] = useState<RegisterErrors>({});
 
@@ -83,9 +87,10 @@ const Register: React.FC = () => {
     if (!form.confirmPassword) nextErrors.confirmPassword = 'Please confirm your password';
     else if (form.password !== form.confirmPassword) nextErrors.confirmPassword = 'Passwords do not match';
 
-    if (form.role === 'ngo') {
+    if (form.role === 'organizer') {
       if (!form.orgName.trim()) nextErrors.orgName = 'Organization name is required';
       if (!form.category) nextErrors.category = 'Category is required';
+      if (!form.idFile) nextErrors.idFile = 'Verified ID is required';
     }
 
     if (!form.terms) nextErrors.terms = 'You must agree to terms and conditions';
@@ -98,7 +103,13 @@ const Register: React.FC = () => {
     e.preventDefault();
     if (validateForm()) {
       showToast('Registration successful! Redirecting...', 'success');
-      setTimeout(() => navigate('/dashboard'), 1500);
+      setTimeout(() => {
+        if (form.role === 'organizer') {
+          navigate('/organizer-dashboard');
+        } else {
+          navigate('/dashboard');
+        }
+      }, 1500);
     }
   };
 
@@ -122,7 +133,7 @@ const Register: React.FC = () => {
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-3">I want to join as:</label>
                   <div className="grid grid-cols-2 gap-4">
-                    {(['volunteer', 'ngo'] as Role[]).map((roleOption) => (
+                    {(['volunteer', 'organizer'] as Role[]).map((roleOption) => (
                       <label key={roleOption} className="role-card cursor-pointer">
                         <input
                           type="radio"
@@ -137,7 +148,7 @@ const Register: React.FC = () => {
                             {roleOption === 'volunteer' ? 'volunteer_activism' : 'business'}
                           </span>
                           <span className="font-semibold">
-                            {roleOption === 'volunteer' ? 'Volunteer' : 'NGO'}
+                            {roleOption === 'volunteer' ? 'Volunteer' : 'Organizer'}
                           </span>
                         </div>
                       </label>
@@ -245,9 +256,9 @@ const Register: React.FC = () => {
                   </div>
                 )}
 
-                {/* NGO Fields */}
-                {form.role === 'ngo' && (
-                  <div id="ngoFields">
+                {/* Organizer Fields */}
+                {form.role === 'organizer' && (
+                  <div id="organizerFields">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">Organization Name</label>
                     <input
                       type="text"
@@ -274,6 +285,30 @@ const Register: React.FC = () => {
                       <option value="Human Rights">Human Rights</option>
                     </select>
                     {errors.category && <span className="error-message">{errors.category}</span>}
+
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 mt-4">
+                      Upload Verified ID (Government ID / Registration Cert)
+                    </label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal-500 transition cursor-pointer">
+                      <input
+                        type="file"
+                        id="idFile"
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files ? e.target.files[0] : null;
+                          setForm((prev) => ({ ...prev, idFile: file }));
+                        }}
+                      />
+                      <label htmlFor="idFile" className="cursor-pointer">
+                        <span className="material-icons text-4xl text-gray-400 mb-2">cloud_upload</span>
+                        <p className="text-gray-600 font-medium">
+                          {form.idFile ? form.idFile.name : 'Click to upload or drag and drop'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">PDF, JPG, PNG up to 5MB</p>
+                      </label>
+                    </div>
+                    {errors.idFile && <span className="error-message">{errors.idFile}</span>}
                   </div>
                 )}
 

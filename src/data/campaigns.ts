@@ -21,7 +21,7 @@ export const campaigns: Campaign[] = [
     category: 'Education',
     description:
       'Building schools and training teachers in underserved communities.',
-    organization: 'Bright Futures NGO',
+    organization: 'Bright Futures Org',
     location: 'New Delhi, India',
     dateRange: 'Feb 1 - Dec 31, 2026',
     volunteersCurrent: 120,

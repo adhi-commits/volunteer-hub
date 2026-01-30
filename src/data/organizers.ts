@@ -1,6 +1,6 @@
-import type { Ngo } from '../types';
+import type { Organizer } from '../types';
 
-export const ngos: Ngo[] = [
+export const organizers: Organizer[] = [
   {
     id: 'wateraid',
     name: 'WaterAid Foundation',
@@ -14,7 +14,7 @@ export const ngos: Ngo[] = [
   },
   {
     id: 'bright-futures',
-    name: 'Bright Futures NGO',
+    name: 'Bright Futures Org',
     category: 'Education',
     description: 'Building schools and training teachers in underserved communities.',
     location: 'New Delhi, India',

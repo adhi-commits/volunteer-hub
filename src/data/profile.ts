@@ -61,7 +61,7 @@ export const certificates: Certificate[] = [
   {
     id: 'cert-education',
     title: 'Education Campaign',
-    org: 'Bright Futures NGO',
+    org: 'Bright Futures Org',
     issued: 'Issued: In Progress',
     colorClass: 'border-blue-200 bg-gradient-to-br from-blue-50 to-white text-blue-600',
   },

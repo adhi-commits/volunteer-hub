@@ -2,8 +2,9 @@ import React, { useMemo, useState } from 'react';
 import Layout from '../components/Layout';
 import { campaigns } from '../data/campaigns';
 import type { Campaign } from '../types';
-import { Link } from 'react-router-dom';
 import { useAnimateOnScroll } from '../hooks/useAnimateOnScroll';
+
+import CampaignModal from '../components/CampaignModal';
 
 const statusBadgeClass = (status: Campaign['status']) => {
   switch (status) {
@@ -40,6 +41,7 @@ const Campaigns: React.FC = () => {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
   const filtered = useMemo(
     () =>
@@ -54,8 +56,12 @@ const Campaigns: React.FC = () => {
     [search, category, status],
   );
 
+  /* Check for logged in user to show correct nav */
+  const userRole = localStorage.getItem('userRole');
+  const layoutVariant = userRole ? 'dashboard' : 'public';
+
   return (
-    <Layout>
+    <Layout variant={layoutVariant}>
       {/* Header */}
       <section className="pt-28 pb-12 bg-gradient-to-br from-teal-50 to-white">
         <div className="container mx-auto px-6">
@@ -70,7 +76,7 @@ const Campaigns: React.FC = () => {
               <input
                 type="text"
                 id="searchCampaign"
-                placeholder="Search campaigns or NGOs..."
+                placeholder="Search campaigns or Organizers..."
                 className="input-field pl-12"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -158,10 +164,13 @@ const Campaigns: React.FC = () => {
                       Campaign Ended
                     </button>
                   ) : (
-                    <Link to="/register" className="btn-primary w-full justify-center">
-                      Register Now
+                    <button
+                      onClick={() => setSelectedCampaign(campaign)}
+                      className="btn-primary w-full justify-center"
+                    >
+                      Join Now
                       <span className="material-icons ml-2 text-sm">arrow_forward</span>
-                    </Link>
+                    </button>
                   )}
                 </div>
               );
@@ -169,6 +178,13 @@ const Campaigns: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {selectedCampaign && (
+        <CampaignModal
+          campaign={selectedCampaign}
+          onClose={() => setSelectedCampaign(null)}
+        />
+      )}
     </Layout>
   );
 };

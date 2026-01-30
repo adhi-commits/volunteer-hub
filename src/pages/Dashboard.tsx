@@ -8,7 +8,9 @@ import { Link } from 'react-router-dom';
 const Dashboard: React.FC = () => {
   useAnimateOnScroll('.campaign-card');
 
-  const recommended = campaigns.slice(0, 2);
+  const joinedIds = JSON.parse(sessionStorage.getItem('joinedCampaigns') || '[]');
+  const joinedCampaignsList = campaigns.filter(c => joinedIds.includes(c.id));
+  const recommended = campaigns.filter(c => !joinedIds.includes(c.id)).slice(0, 2);
 
   return (
     <Layout variant="dashboard">
@@ -94,6 +96,35 @@ const Dashboard: React.FC = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {/* Left Column */}
             <div className="md:col-span-2">
+              <div className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">My Active Campaigns</h2>
+                {joinedCampaignsList.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow p-8 text-center">
+                    <p className="text-gray-500 mb-4">You haven't joined any campaigns yet.</p>
+                    <Link to="/campaigns" className="btn-primary">Browse Campaigns</Link>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {joinedCampaignsList.map(campaign => (
+                      <Link to={`/campaigns/${campaign.id}/register`} key={campaign.id} className="block bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition border-l-4 border-teal-500">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="badge badge-yellow">Status: Pending</span>
+                              <span className="text-sm text-gray-400">•</span>
+                              <span className="text-sm text-gray-600">{campaign.category}</span>
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-800">{campaign.title}</h3>
+                            <p className="text-gray-600 text-sm mt-1">{campaign.organization}</p>
+                          </div>
+                          <span className="material-icons text-teal-600">arrow_forward_ios</span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Recommended Campaigns</h2>
                 <Link
@@ -218,9 +249,8 @@ const Dashboard: React.FC = () => {
                   {leaderboard.map((entry) => (
                     <div
                       key={entry.position}
-                      className={`flex items-center justify-between ${
-                        entry.isCurrentUser ? 'bg-teal-50 rounded-lg p-2' : ''
-                      }`}
+                      className={`flex items-center justify-between ${entry.isCurrentUser ? 'bg-teal-50 rounded-lg p-2' : ''
+                        }`}
                     >
                       <div className="flex items-center">
                         <div

@@ -20,7 +20,7 @@ export interface Campaign {
   volunteersTarget: number;
 }
 
-export interface Ngo {
+export interface Organizer {
   id: string;
   name: string;
   category: CampaignCategory | 'General';

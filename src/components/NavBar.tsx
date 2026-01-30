@@ -13,21 +13,22 @@ const NavBar: React.FC<Props> = ({ variant = 'public' }) => {
   const publicLinks = [
     { to: '/', label: 'Home', icon: 'home' },
     { to: '/campaigns', label: 'Campaigns', icon: 'campaign' },
-    { to: '/ngos', label: 'NGOs', icon: 'groups' },
     { to: '/login', label: 'Login', icon: 'login' },
   ];
 
+  const userRole = sessionStorage.getItem('userRole');
+  const dashboardTarget = userRole === 'organizer' ? '/organizer-dashboard' : '/dashboard';
+
   const dashboardLinks = [
-    { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { to: '/campaigns', label: 'Campaigns', icon: 'campaign' },
+    { to: dashboardTarget, label: 'Dashboard', icon: 'dashboard' },
+    ...(userRole !== 'organizer' ? [{ to: '/campaigns', label: 'Campaigns', icon: 'campaign' }] : []),
     { to: '/profile', label: 'Profile', icon: 'person' },
   ];
 
   const links = variant === 'dashboard' ? dashboardLinks : publicLinks;
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `${variant === 'dashboard' ? 'nav-link' : 'flex items-center text-gray-700 hover:text-teal-600 transition'} ${
-      isActive ? 'text-teal-600 font-medium' : ''
+    `${variant === 'dashboard' ? 'nav-link' : 'flex items-center text-gray-700 hover:text-teal-600 transition'} ${isActive ? 'text-teal-600 font-medium' : ''
     }`;
 
   return (
