@@ -70,42 +70,47 @@ const Campaigns: React.FC = () => {
             Find meaningful opportunities to contribute to causes you care about
           </p>
 
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <span className="material-icons absolute left-3 top-3 text-gray-400">search</span>
+          <div className="flex flex-col gap-6">
+            <div className="relative w-full">
+              <span className="material-icons absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                search
+              </span>
               <input
                 type="text"
                 id="searchCampaign"
                 placeholder="Search campaigns or Organizers..."
-                className="input-field pl-12"
+                className="w-full pl-12 pr-4 py-4 rounded-xl text-lg text-gray-800 bg-white shadow-lg border-2 border-transparent focus:border-teal-500 focus:outline-none transition-all placeholder-gray-400"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <select
-              id="categoryFilter"
-              className="input-field"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              <option value="">All Categories</option>
-              <option value="Environment">Environment</option>
-              <option value="Education">Education</option>
-              <option value="Healthcare">Healthcare</option>
-              <option value="Poverty">Poverty</option>
-              <option value="Human Rights">Human Rights</option>
-            </select>
-            <select
-              id="statusFilter"
-              className="input-field"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Upcoming">Upcoming</option>
-              <option value="Completed">Completed</option>
-            </select>
+
+            <div className="flex flex-wrap gap-4">
+              <select
+                id="categoryFilter"
+                className="input-field flex-1 min-w-[200px] bg-white text-gray-700 font-medium py-3"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                <option value="">All Categories</option>
+                <option value="Environment">Environment</option>
+                <option value="Education">Education</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Poverty">Poverty</option>
+                <option value="Human Rights">Human Rights</option>
+              </select>
+              <select
+                id="statusFilter"
+                className="input-field flex-1 min-w-[200px] bg-white text-gray-700 font-medium py-3"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+              >
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Upcoming">Upcoming</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
           </div>
         </div>
       </section>

@@ -1,16 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
-import { campaigns } from '../data/campaigns';
+import { campaigns } from '../data/campaigns'; // Keep for recommended for now
 import { leaderboard, recentActivity, userStats } from '../data/profile';
 import { useAnimateOnScroll } from '../hooks/useAnimateOnScroll';
 import { Link } from 'react-router-dom';
+import { api } from '../services/api';
 
 const Dashboard: React.FC = () => {
   useAnimateOnScroll('.campaign-card');
 
-  const joinedIds = JSON.parse(sessionStorage.getItem('joinedCampaigns') || '[]');
-  const joinedCampaignsList = campaigns.filter(c => joinedIds.includes(c.id));
-  const recommended = campaigns.filter(c => !joinedIds.includes(c.id)).slice(0, 2);
+  const [joinedCampaignsList, setJoinedCampaignsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const userId = sessionStorage.getItem('userId');
+    if (userId) {
+      fetch(`${api.campaigns.joined}?user_id=${userId}`)
+        .then(res => res.json())
+        .then(data => setJoinedCampaignsList(data))
+        .catch(console.error);
+    }
+  }, []);
+
+  const recommended = campaigns.slice(0, 2); // Fallback to mock for recommended for now
 
   return (
     <Layout variant="dashboard">

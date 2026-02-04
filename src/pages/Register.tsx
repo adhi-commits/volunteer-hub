@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 import { validateEmail, validatePassword, validatePhone } from '../utils/validation';
+import { api } from '../services/api';
 
 type Role = 'volunteer' | 'organizer';
 
@@ -99,17 +100,56 @@ const Register: React.FC = () => {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      showToast('Registration successful! Redirecting...', 'success');
-      setTimeout(() => {
-        if (form.role === 'organizer') {
-          navigate('/organizer-dashboard');
+      try {
+        const response = await fetch(api.auth.register, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            role: form.role,
+            firstName: form.firstName,
+            lastName: form.lastName,
+            email: form.email,
+            phone: form.phone,
+            password: form.password,
+            // Conditional fields
+            ...(form.role === 'volunteer' && {
+              department: form.department,
+              skills: form.skills,
+            }),
+            ...(form.role === 'organizer' && {
+              orgName: form.orgName,
+              category: form.category,
+              // Note: File upload is not handled here as we are using JSON for now.
+              // If file upload is needed, we would need to use FormData.
+            }),
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showToast('Registration successful! Redirecting...', 'success');
+          // Optional: Auto-login logic could go here (saving session storage)
+
+          setTimeout(() => {
+            if (form.role === 'organizer') {
+              navigate('/login'); // Redirect to login after registration usually
+            } else {
+              navigate('/login');
+            }
+          }, 1500);
         } else {
-          navigate('/dashboard');
+          showToast(data.message || data.error || 'Registration failed', 'error');
         }
-      }, 1500);
+      } catch (error) {
+        console.error('Registration error:', error);
+        showToast('Network error. Please try again.', 'error');
+      }
     }
   };
 
@@ -127,7 +167,6 @@ const Register: React.FC = () => {
                 <h2 className="text-3xl font-bold text-gray-800 mb-2">Create Account</h2>
                 <p className="text-gray-600">Join our community and start making a difference</p>
               </div>
-
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Role Selection */}
                 <div>

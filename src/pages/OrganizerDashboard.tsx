@@ -1,29 +1,68 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
-import { campaigns } from "../data/campaigns";
+import { api } from "../services/api";
 
 const OrganizerDashboard: React.FC = () => {
-  // Mock data for organizer stats
-  const stats = {
-    activeCampaigns: 3,
-    totalVolunteers: 145,
-    totalImpact: 520, // hours or some metric
-    pendingRequests: 5,
-  };
+  const [myCampaigns, setMyCampaigns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
-  const myCampaigns = campaigns.slice(0, 3); // Just mock with existing campaigns for now
+  const filteredCampaigns = myCampaigns.filter((c) =>
+    c.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      const userId = sessionStorage.getItem("userId");
+      if (userId) {
+        try {
+          const res = await fetch(
+            `${api.campaigns.list}?organizer_id=${userId}`,
+          );
+          const data = await res.json();
+          setMyCampaigns(data);
+        } catch (err) {
+          console.error("Failed to fetch campaigns", err);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    fetchCampaigns();
+  }, []);
+  const stats = {
+    activeCampaigns: myCampaigns.length,
+    totalVolunteers: myCampaigns.reduce(
+      (acc, c) => acc + (c.volunteers_current || 0),
+      0,
+    ),
+    totalImpact: 520, // specific logical calc can be added later
+    pendingRequests: 0,
+  };
 
   return (
     <Layout variant="dashboard">
       <section className="pt-28 pb-8 bg-gradient-to-r from-teal-600 to-teal-800 text-white">
         <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <h1 className="text-3xl font-bold mb-2">Organizer Dashboard</h1>
               <p className="text-teal-100">
                 Manage your campaigns and track impact.
               </p>
+            </div>
+            <div className="relative w-full md:w-1/2 lg:w-1/3">
+              <span className="material-icons absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                search
+              </span>
+              <input
+                type="text"
+                placeholder="Search campaigns..."
+                className="w-full pl-12 pr-4 py-3 rounded-lg text-gray-700 bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition-all"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
           </div>
         </div>
@@ -75,69 +114,105 @@ const OrganizerDashboard: React.FC = () => {
                   </Link>
                 </div>
                 <div className="divide-y divide-gray-100">
-                  {myCampaigns.map((camp) => (
-                    <div
-                      key={camp.id}
-                      className="p-6 hover:bg-gray-50 transition"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h3 className="font-bold text-gray-800 text-lg">
-                            {camp.title}
-                          </h3>
-                          <div className="text-gray-500 text-sm flex items-center mt-1">
-                            <span className="material-icons text-xs mr-1">
-                              event
-                            </span>
-                            {camp.dateRange}
-                            <span className="mx-2">•</span>
-                            <span className="material-icons text-xs mr-1">
-                              location_on
-                            </span>
-                            {camp.location}
-                          </div>
-                        </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            camp.status === "Active"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {camp.status}
+                  {loading ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+                      <p className="mt-4 text-gray-500">
+                        Loading your campaigns...
+                      </p>
+                    </div>
+                  ) : filteredCampaigns.length === 0 ? (
+                    <div className="text-center py-20 px-6">
+                      <div className="bg-gray-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                        <span className="material-icons text-gray-400 text-4xl">
+                          {search ? "search_off" : "campaign"}
                         </span>
                       </div>
-                      <div className="mt-4">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-500">
-                            Volunteers Joined
-                          </span>
-                          <span className="font-medium">
-                            {camp.volunteersCurrent} / {camp.volunteersTarget}
-                          </span>
-                        </div>
-                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-teal-500"
-                            style={{
-                              width: `${(camp.volunteersCurrent / camp.volunteersTarget) * 100}%`,
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex gap-3">
-                        <button className="text-sm border border-gray-300 rounded px-3 py-1 hover:bg-gray-100">
-                          Edit
-                        </button>
+                      <h3 className="text-lg font-medium text-gray-800 mb-2">
+                        {search ? "No matches found" : "No campaigns found"}
+                      </h3>
+                      <p className="text-gray-500 mb-6">
+                        {search
+                          ? `We couldn't find any campaigns matching "${search}"`
+                          : "You haven't launched any campaigns yet. Start your journey today!"}
+                      </p>
+                      {!search && (
                         <Link
-                          to={`/campaign-volunteers/${camp.id}`}
-                          className="text-sm border border-gray-300 rounded px-3 py-1 hover:bg-gray-100 transition inline-flex items-center"
+                          to="/create-campaign"
+                          className="inline-flex items-center text-teal-600 font-semibold hover:underline"
                         >
-                          View Volunteers
+                          Create your first campaign
+                          <span className="material-icons text-sm ml-1">
+                            arrow_forward
+                          </span>
                         </Link>
-                      </div>
+                      )}
                     </div>
-                  ))}
+                  ) : (
+                    filteredCampaigns.map((camp) => (
+                      <div
+                        key={camp.id}
+                        className="p-6 hover:bg-gray-50 transition"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <h3 className="font-bold text-gray-800 text-lg">
+                              {camp.title}
+                            </h3>
+                            <div className="text-gray-500 text-sm flex items-center mt-1">
+                              <span className="material-icons text-xs mr-1">
+                                event
+                              </span>
+                              {camp.start_date} - {camp.end_date}
+                              <span className="mx-2">•</span>
+                              <span className="material-icons text-xs mr-1">
+                                location_on
+                              </span>
+                              {camp.location}
+                            </div>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${camp.status === "Active"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-700"
+                              }`}
+                          >
+                            {camp.status}
+                          </span>
+                        </div>
+                        <div className="mt-4">
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-500">
+                              Volunteers Joined
+                            </span>
+                            <span className="font-medium">
+                              {camp.volunteers_current || 0} /{" "}
+                              {camp.volunteers_target}
+                            </span>
+                          </div>
+                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-teal-500"
+                              style={{
+                                width: `${((camp.volunteers_current || 0) / camp.volunteers_target) * 100}%`,
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex gap-3">
+                          <button className="text-sm border border-gray-300 rounded px-3 py-1 hover:bg-gray-100">
+                            Edit
+                          </button>
+                          <Link
+                            to={`/campaign-volunteers/${camp.id}`}
+                            className="text-sm border border-gray-300 rounded px-3 py-1 hover:bg-gray-100 transition inline-flex items-center"
+                          >
+                            View Volunteers
+                          </Link>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>

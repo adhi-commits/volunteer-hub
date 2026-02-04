@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
+import { api } from '../services/api';
 
 const CreateCampaign: React.FC = () => {
     const navigate = useNavigate();
@@ -21,13 +22,36 @@ const CreateCampaign: React.FC = () => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Simulate API call
-        showToast('Campaign posted successfully!', 'success');
-        setTimeout(() => {
-            navigate('/organizer-dashboard');
-        }, 1500);
+        const organizerId = sessionStorage.getItem('userId');
+
+        if (!organizerId) {
+            showToast('You must be logged in', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(api.campaigns.create, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...form,
+                    organizerId
+                })
+            });
+
+            if (response.ok) {
+                showToast('Campaign posted successfully!', 'success');
+                setTimeout(() => {
+                    navigate('/organizer-dashboard');
+                }, 1500);
+            } else {
+                showToast('Failed to create campaign', 'error');
+            }
+        } catch (error) {
+            showToast('Network error', 'error');
+        }
     };
 
     return (

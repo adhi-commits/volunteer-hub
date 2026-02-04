@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Campaign } from '../types';
 import { useToast } from '../hooks/useToast';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
 
 interface Props {
     campaign: Campaign;
@@ -40,14 +41,28 @@ const CampaignModal: React.FC<Props> = ({ campaign, onClose }) => {
         setStep('form');
     };
 
-    const handleConfirmJoin = () => {
-        // Save to sessionStorage to simulate joining
-        const joined = JSON.parse(sessionStorage.getItem('joinedCampaigns') || '[]');
-        if (!joined.includes(campaign.id)) {
-            joined.push(campaign.id);
-            sessionStorage.setItem('joinedCampaigns', JSON.stringify(joined));
+    const handleConfirmJoin = async () => {
+        const userId = sessionStorage.getItem('userId');
+
+        try {
+            const response = await fetch(api.campaigns.join, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    campaignId: campaign.id
+                })
+            });
+
+            if (response.ok) {
+                setStep('success');
+            } else {
+                const data = await response.json();
+                showToast(data.error || 'Failed to join', 'error');
+            }
+        } catch (error) {
+            showToast('Network error', 'error');
         }
-        setStep('success');
     };
 
     const toggleSkill = (value: string) => {

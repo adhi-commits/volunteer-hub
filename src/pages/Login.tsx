@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
 import { validateEmail } from '../utils/validation';
+import { api } from '../services/api';
 
 interface LoginErrors {
   email?: string;
@@ -18,7 +19,7 @@ const Login: React.FC = () => {
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState<LoginErrors>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextErrors: LoginErrors = {};
 
@@ -34,15 +35,45 @@ const Login: React.FC = () => {
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length === 0) {
-      sessionStorage.setItem('userRole', role);
-      showToast('Login successful! Redirecting...', 'success');
-      setTimeout(() => {
-        if (role === 'organizer') {
-          navigate('/organizer-dashboard');
+      try {
+        const response = await fetch(api.auth.login, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: form.email,
+            password: form.password,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Verify role matches selected role (optional security check)
+          if (data.user.role !== role) {
+            showToast(`Please login as ${data.user.role}`, 'error');
+            return;
+          }
+
+          sessionStorage.setItem('userRole', data.user.role);
+          sessionStorage.setItem('userId', data.user.id);
+          sessionStorage.setItem('userName', data.user.name);
+
+          showToast('Login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            if (role === 'organizer') {
+              navigate('/organizer-dashboard');
+            } else {
+              navigate('/dashboard');
+            }
+          }, 1500);
         } else {
-          navigate('/dashboard');
+          showToast(data.error || 'Login failed', 'error');
         }
-      }, 1500);
+      } catch (error) {
+        showToast('Network error. Please try again.', 'error');
+      }
     }
   };
 
