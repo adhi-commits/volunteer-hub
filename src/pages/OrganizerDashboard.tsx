@@ -2,11 +2,16 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import { api } from "../services/api";
+import EditCampaignModal from '../components/EditCampaignModal';
+import MessagingPanel from '../components/MessagingPanel';
 
 const OrganizerDashboard: React.FC = () => {
   const [myCampaigns, setMyCampaigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [editingCampaign, setEditingCampaign] = useState<any | null>(null);
+  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const filteredCampaigns = myCampaigns.filter((c) =>
     c.title.toLowerCase().includes(search.toLowerCase())
@@ -17,9 +22,7 @@ const OrganizerDashboard: React.FC = () => {
       const userId = sessionStorage.getItem("userId");
       if (userId) {
         try {
-          const res = await fetch(
-            `${api.campaigns.list}?organizer_id=${userId}`,
-          );
+          const res = await fetch(`${api.campaigns.list}?organizer_id=${userId}`);
           const data = await res.json();
           setMyCampaigns(data);
         } catch (err) {
@@ -29,17 +32,50 @@ const OrganizerDashboard: React.FC = () => {
         }
       }
     };
+
+    const fetchUnread = async () => {
+      const userId = sessionStorage.getItem("userId");
+      if (userId) {
+        try {
+          const res = await fetch(api.messages.getUnreadCount(Number(userId)));
+          const data = await res.json();
+          setUnreadCount(data.unread_count || 0);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    };
+
     fetchCampaigns();
+    fetchUnread();
+    
+    // Poll unread messages
+    const interval = setInterval(fetchUnread, 15000);
+    return () => clearInterval(interval);
   }, []);
+
+  const handleEditSuccess = () => {
+      setEditingCampaign(null);
+      // We would ideally abstract fetchCampaigns out of useEffect, or just do a window.reload, or re-fetch some other way.
+      // Easiest is to just reload page to ensure fresh data.
+      window.location.reload();
+  };
   const stats = {
     activeCampaigns: myCampaigns.length,
     totalVolunteers: myCampaigns.reduce(
       (acc, c) => acc + (c.volunteers_current || 0),
       0,
     ),
-    totalImpact: 520, // specific logical calc can be added later
+    totalImpact: Math.round(myCampaigns.reduce((acc, c) => {
+      const start = new Date(c.start_date);
+      const end = new Date(c.end_date);
+      const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+      return acc + (Math.max(0, durationHours) * (c.volunteers_current || 0));
+    }, 0)),
     pendingRequests: 0,
   };
+
+  const userName = sessionStorage.getItem('userName') || 'Organizer';
 
   return (
     <Layout variant="dashboard">
@@ -47,7 +83,7 @@ const OrganizerDashboard: React.FC = () => {
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <h1 className="text-3xl font-bold mb-2">Organizer Dashboard</h1>
+              <h1 className="text-3xl font-bold mb-2">Welcome, {userName}!</h1>
               <p className="text-teal-100">
                 Manage your campaigns and track impact.
               </p>
@@ -163,7 +199,7 @@ const OrganizerDashboard: React.FC = () => {
                               <span className="material-icons text-xs mr-1">
                                 event
                               </span>
-                              {camp.start_date} - {camp.end_date}
+                              {new Date(camp.start_date).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} - {new Date(camp.end_date).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                               <span className="mx-2">•</span>
                               <span className="material-icons text-xs mr-1">
                                 location_on
@@ -200,7 +236,10 @@ const OrganizerDashboard: React.FC = () => {
                           </div>
                         </div>
                         <div className="mt-4 flex gap-3">
-                          <button className="text-sm border border-gray-300 rounded px-3 py-1 hover:bg-gray-100">
+                          <button 
+                            onClick={() => setEditingCampaign(camp)}
+                            className="text-sm border border-gray-300 rounded px-3 py-1 hover:bg-gray-100 transition"
+                          >
                             Edit
                           </button>
                           <Link
@@ -265,6 +304,30 @@ const OrganizerDashboard: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {editingCampaign && (
+        <EditCampaignModal 
+            campaign={editingCampaign} 
+            onClose={() => setEditingCampaign(null)} 
+            onUpdateSuccess={handleEditSuccess}
+        />
+      )}
+
+      {/* Messaging Panel */}
+      {!isMessagingOpen && (
+        <button 
+          onClick={() => setIsMessagingOpen(true)}
+          className="fixed bottom-6 right-6 bg-teal-600 hover:bg-teal-700 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-40 transition transform hover:scale-105"
+        >
+          <span className="material-icons">chat</span>
+          {unreadCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
+              {unreadCount}
+            </span>
+          )}
+        </button>
+      )}
+      <MessagingPanel isOpen={isMessagingOpen} onClose={() => setIsMessagingOpen(false)} />
     </Layout>
   );
 };

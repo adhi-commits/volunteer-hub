@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
-import { validateEmail, validatePassword, validatePhone } from '../utils/validation';
+import { validateEmail, validatePassword, validatePhone, getPasswordStrength } from '../utils/validation';
 import { api } from '../services/api';
 
 type Role = 'volunteer' | 'organizer';
@@ -20,8 +20,8 @@ interface RegisterForm {
   category: string;
   password: string;
   confirmPassword: string;
-  terms: boolean;
   idFile: File | null;
+  termsAccepted: boolean;
 }
 
 type RegisterErrors = Partial<Record<keyof RegisterForm, string>>;
@@ -53,8 +53,8 @@ const Register: React.FC = () => {
     category: '',
     password: '',
     confirmPassword: '',
-    terms: false,
     idFile: null,
+    termsAccepted: false,
   });
   const [errors, setErrors] = useState<RegisterErrors>({});
 
@@ -80,21 +80,31 @@ const Register: React.FC = () => {
     if (!form.email.trim()) nextErrors.email = 'Email is required';
     else if (!validateEmail(form.email.trim())) nextErrors.email = 'Please enter a valid email';
     if (!form.phone.trim()) nextErrors.phone = 'Phone number is required';
-    else if (!validatePhone(form.phone.trim())) nextErrors.phone = 'Please enter a valid phone number';
+    else if (!validatePhone(form.phone.trim())) nextErrors.phone = 'Please enter a valid 10-digit phone number';
 
     if (!form.password) nextErrors.password = 'Password is required';
-    else if (!validatePassword(form.password)) nextErrors.password = 'Password must be at least 8 characters';
+    else if (!validatePassword(form.password))
+      nextErrors.password =
+        'Password must be at least 8 characters and include uppercase, lowercase, number, and special character';
 
     if (!form.confirmPassword) nextErrors.confirmPassword = 'Please confirm your password';
     else if (form.password !== form.confirmPassword) nextErrors.confirmPassword = 'Passwords do not match';
+
+    if (form.role === 'volunteer') {
+      if (form.skills.length === 0) nextErrors.department = 'At least one skill is required'; // Using department field for error display if general error is not available, or add a specific error field.
+      // Better to add a specific error key but RegisterErrors is mapped to Form keys.
+      // Let's check if 'skills' is in RegisterErrors. It is keyof RegisterForm, so yes.
+      if (form.skills.length === 0) (nextErrors as any).skills = 'Please select at least one skill';
+    }
 
     if (form.role === 'organizer') {
       if (!form.orgName.trim()) nextErrors.orgName = 'Organization name is required';
       if (!form.category) nextErrors.category = 'Category is required';
       if (!form.idFile) nextErrors.idFile = 'Verified ID is required';
+      if (!form.termsAccepted) nextErrors.termsAccepted = 'You must accept the terms and conditions';
     }
 
-    if (!form.terms) nextErrors.terms = 'You must agree to terms and conditions';
+
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -104,30 +114,30 @@ const Register: React.FC = () => {
     e.preventDefault();
     if (validateForm()) {
       try {
+        const formData = new FormData();
+        formData.append('role', form.role);
+        formData.append('firstName', form.firstName);
+        formData.append('lastName', form.lastName);
+        formData.append('email', form.email);
+        formData.append('phone', form.phone);
+        formData.append('password', form.password);
+
+        if (form.role === 'volunteer') {
+          formData.append('department', form.department);
+          form.skills.forEach(skill => formData.append('skills[]', skill));
+        }
+
+        if (form.role === 'organizer') {
+          formData.append('orgName', form.orgName);
+          formData.append('category', form.category);
+          if (form.idFile) {
+            formData.append('organizer_id', form.idFile);
+          }
+        }
+
         const response = await fetch(api.auth.register, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            role: form.role,
-            firstName: form.firstName,
-            lastName: form.lastName,
-            email: form.email,
-            phone: form.phone,
-            password: form.password,
-            // Conditional fields
-            ...(form.role === 'volunteer' && {
-              department: form.department,
-              skills: form.skills,
-            }),
-            ...(form.role === 'organizer' && {
-              orgName: form.orgName,
-              category: form.category,
-              // Note: File upload is not handled here as we are using JSON for now.
-              // If file upload is needed, we would need to use FormData.
-            }),
-          }),
+          body: formData,
         });
 
         const data = await response.json();
@@ -202,7 +212,7 @@ const Register: React.FC = () => {
                     <input
                       type="text"
                       id="firstName"
-                      className="input-field"
+                      className={`input-field ${errors.firstName ? 'border-red-500 focus:ring-red-500' : ''}`}
                       placeholder="John"
                       value={form.firstName}
                       onChange={(e) => handleChange('firstName', e.target.value)}
@@ -214,7 +224,7 @@ const Register: React.FC = () => {
                     <input
                       type="text"
                       id="lastName"
-                      className="input-field"
+                      className={`input-field ${errors.lastName ? 'border-red-500 focus:ring-red-500' : ''}`}
                       placeholder="Doe"
                       value={form.lastName}
                       onChange={(e) => handleChange('lastName', e.target.value)}
@@ -231,7 +241,7 @@ const Register: React.FC = () => {
                     <input
                       type="email"
                       id="registerEmail"
-                      className="input-field pl-10"
+                      className={`input-field pl-10 ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
                       placeholder="your@email.com"
                       value={form.email}
                       onChange={(e) => handleChange('email', e.target.value)}
@@ -248,7 +258,7 @@ const Register: React.FC = () => {
                     <input
                       type="tel"
                       id="phone"
-                      className="input-field pl-10"
+                      className={`input-field pl-10 ${errors.phone ? 'border-red-500 focus:ring-red-500' : ''}`}
                       placeholder="+91 98765 43210"
                       value={form.phone}
                       onChange={(e) => handleChange('phone', e.target.value)}
@@ -292,6 +302,7 @@ const Register: React.FC = () => {
                         </label>
                       ))}
                     </div>
+                    {(errors as any).skills && <span className="error-message">{(errors as any).skills}</span>}
                   </div>
                 )}
 
@@ -302,7 +313,7 @@ const Register: React.FC = () => {
                     <input
                       type="text"
                       id="orgName"
-                      className="input-field"
+                      className={`input-field ${errors.orgName ? 'border-red-500 focus:ring-red-500' : ''}`}
                       placeholder="Your Organization Name"
                       value={form.orgName}
                       onChange={(e) => handleChange('orgName', e.target.value)}
@@ -312,7 +323,7 @@ const Register: React.FC = () => {
                     <label className="block text-sm font-semibold text-gray-700 mb-2 mt-4">Category</label>
                     <select
                       id="category"
-                      className="input-field"
+                      className={`input-field ${errors.category ? 'border-red-500 focus:ring-red-500' : ''}`}
                       value={form.category}
                       onChange={(e) => handleChange('category', e.target.value)}
                     >
@@ -348,6 +359,19 @@ const Register: React.FC = () => {
                       </label>
                     </div>
                     {errors.idFile && <span className="error-message">{errors.idFile}</span>}
+
+                    <label className="flex items-start mt-6">
+                      <input
+                        type="checkbox"
+                        checked={form.termsAccepted}
+                        onChange={(e) => handleChange('termsAccepted', e.target.checked)}
+                        className={`mt-1 w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500`}
+                      />
+                      <span className="ml-2 text-sm text-gray-700">
+                        I agree to the <a href="/terms" target="_blank" className="text-teal-600 hover:underline">Terms and Conditions</a> for organizers.
+                      </span>
+                    </label>
+                    {errors.termsAccepted && <span className="error-message block mt-1">{errors.termsAccepted}</span>}
                   </div>
                 )}
 
@@ -360,7 +384,7 @@ const Register: React.FC = () => {
                       <input
                         type={showPassword.password ? 'text' : 'password'}
                         id="registerPassword"
-                        className="input-field pl-10"
+                        className={`input-field pl-10 pr-10 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
                         placeholder="Create password"
                         value={form.password}
                         onChange={(e) => handleChange('password', e.target.value)}
@@ -377,6 +401,36 @@ const Register: React.FC = () => {
                         </span>
                       </button>
                     </div>
+                    {form.password && (
+                      <div className="mt-1">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-gray-500">Strength:</span>
+                          <span
+                            className={`font-semibold ${getPasswordStrength(form.password) === 'Strong'
+                              ? 'text-green-600'
+                              : getPasswordStrength(form.password) === 'Medium'
+                                ? 'text-yellow-600'
+                                : 'text-red-600'
+                              }`}
+                          >
+                            {getPasswordStrength(form.password)}
+                          </span>
+                        </div>
+                        <div className="h-1 w-full bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-300 ${getPasswordStrength(form.password) === 'Strong'
+                              ? 'bg-green-500 w-full'
+                              : getPasswordStrength(form.password) === 'Medium'
+                                ? 'bg-yellow-500 w-2/3'
+                                : 'bg-red-500 w-1/3'
+                              }`}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Must be at least 8 characters with uppercase, lowercase, number, and special character.
+                        </p>
+                      </div>
+                    )}
                     {errors.password && <span className="error-message">{errors.password}</span>}
                   </div>
                   <div>
@@ -386,7 +440,7 @@ const Register: React.FC = () => {
                       <input
                         type={showPassword.confirm ? 'text' : 'password'}
                         id="confirmPassword"
-                        className="input-field pl-10"
+                        className={`input-field pl-10 pr-10 ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
                         placeholder="Confirm password"
                         value={form.confirmPassword}
                         onChange={(e) => handleChange('confirmPassword', e.target.value)}
@@ -407,29 +461,7 @@ const Register: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Terms */}
-                <div>
-                  <label className="flex items-start">
-                    <input
-                      type="checkbox"
-                      id="terms"
-                      className="w-4 h-4 text-teal-600 border-gray-300 rounded mt-1"
-                      checked={form.terms}
-                      onChange={(e) => handleChange('terms', e.target.checked)}
-                    />
-                    <span className="ml-2 text-sm text-gray-700">
-                      I agree to the{' '}
-                      <a href="#" className="text-teal-600 hover:text-teal-700 font-medium">
-                        Terms &amp; Conditions
-                      </a>{' '}
-                      and{' '}
-                      <a href="#" className="text-teal-600 hover:text-teal-700 font-medium">
-                        Privacy Policy
-                      </a>
-                    </span>
-                  </label>
-                  {errors.terms && <span className="error-message">{errors.terms}</span>}
-                </div>
+
 
                 <button type="submit" className="btn-primary w-full justify-center">
                   Create Account

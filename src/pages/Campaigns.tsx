@@ -1,10 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { campaigns } from '../data/campaigns';
 import type { Campaign } from '../types';
 import { useAnimateOnScroll } from '../hooks/useAnimateOnScroll';
+import { api } from '../services/api';
 
 import CampaignModal from '../components/CampaignModal';
+import MessagingPanel from '../components/MessagingPanel';
 
 const statusBadgeClass = (status: Campaign['status']) => {
   switch (status) {
@@ -42,6 +43,50 @@ const Campaigns: React.FC = () => {
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('');
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Messaging state
+  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
+  const [messageContactId, setMessageContactId] = useState<number | null>(null);
+
+  const handleMessageOrganizer = (contactId: number) => {
+    setMessageContactId(contactId);
+    setIsMessagingOpen(true);
+    setSelectedCampaign(null); // Optional: close modal when messaging
+  };
+
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        const response = await fetch(api.campaigns.list);
+        const data = await response.json();
+
+        // Map API response to Campaign type
+        const mappedCampaigns: Campaign[] = data.map((camp: any) => ({
+          id: camp.id,
+          title: camp.title,
+          description: camp.description,
+          organization: `Organizer #${camp.organizer_id}`, // We'll need to fetch organizer name separately if needed
+          organizerId: camp.organizer_id,
+          category: camp.category as Campaign['category'],
+          location: camp.location,
+          dateRange: `${new Date(camp.start_date).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} - ${new Date(camp.end_date).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+          volunteersTarget: camp.volunteers_target,
+          volunteersCurrent: camp.volunteers_current || 0,
+          status: camp.status as Campaign['status'],
+        }));
+
+        setCampaigns(mappedCampaigns);
+      } catch (error) {
+        console.error('Failed to fetch campaigns:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCampaigns();
+  }, []);
 
   const filtered = useMemo(
     () =>
@@ -53,7 +98,7 @@ const Campaigns: React.FC = () => {
         const matchesStatus = status ? campaign.status.toLowerCase() === status.toLowerCase() : true;
         return matchesSearch && matchesCategory && matchesStatus;
       }),
-    [search, category, status],
+    [search, category, status, campaigns],
   );
 
   /* Check for logged in user to show correct nav */
@@ -118,42 +163,52 @@ const Campaigns: React.FC = () => {
       {/* Campaign Cards */}
       <section className="py-12">
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-3 gap-8" id="campaignGrid">
-            {filtered.map((campaign) => {
-              const progress = Math.min(
-                100,
-                Math.round((campaign.volunteersCurrent / campaign.volunteersTarget) * 100),
-              );
-              const isCompleted = campaign.status === 'Completed';
-              return (
-                <div key={campaign.id} className="campaign-card">
-                  <div className="flex items-start justify-between mb-4">
-                    <span className={statusBadgeClass(campaign.status)}>{campaign.status}</span>
-                    <span className={categoryBadgeClass(campaign.category)}>{campaign.category}</span>
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-3">{campaign.title}</h3>
-                  <p className="text-gray-600 mb-4">{campaign.description}</p>
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-xl text-gray-600">Loading campaigns...</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-xl text-gray-600">No campaigns found matching your criteria.</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-8" id="campaignGrid">
+              {filtered.map((campaign) => {
+                const progress = Math.min(
+                  100,
+                  Math.round((campaign.volunteersCurrent / campaign.volunteersTarget) * 100),
+                );
+                const isCompleted = campaign.status === 'Completed';
+                return (
+                  <div key={campaign.id} className="campaign-card">
+                    <div className="flex items-start justify-between mb-4">
+                      <span className={statusBadgeClass(campaign.status)}>{campaign.status}</span>
+                      <span className={categoryBadgeClass(campaign.category)}>{campaign.category}</span>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-3">{campaign.title}</h3>
+                    <p className="text-gray-600 mb-4">{campaign.description}</p>
 
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="material-icons text-teal-600 text-sm mr-2">business</span>
-                      <span className="font-medium">{campaign.organization}</span>
+                    <div className="space-y-2 mb-4">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <span className="material-icons text-teal-600 text-sm mr-2">business</span>
+                        <span className="font-medium">{campaign.organization}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <span className="material-icons text-teal-600 text-sm mr-2">location_on</span>
+                        {campaign.location}
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <span className="material-icons text-teal-600 text-sm mr-2">event</span>
+                        {campaign.dateRange}
+                      </div>
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="material-icons text-teal-600 text-sm mr-2">location_on</span>
-                      {campaign.location}
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="material-icons text-teal-600 text-sm mr-2">event</span>
-                      {campaign.dateRange}
-                    </div>
-                  </div>
 
-                  <div className="mb-4">
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600">Volunteers</span>
+                      <span className="text-gray-600">
+                        {campaign.volunteersTarget - campaign.volunteersCurrent} Slots Left
+                      </span>
                       <span className="font-semibold text-gray-800">
-                        {campaign.volunteersCurrent}/{campaign.volunteersTarget}
+                        {campaign.volunteersCurrent}/{campaign.volunteersTarget} Joined
                       </span>
                     </div>
                     <div className="progress-bar">
@@ -162,33 +217,60 @@ const Campaigns: React.FC = () => {
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
-                  </div>
 
-                  {isCompleted ? (
-                    <button className="bg-gray-400 text-white px-6 py-3 rounded-lg w-full cursor-not-allowed" disabled>
-                      Campaign Ended
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setSelectedCampaign(campaign)}
-                      className="btn-primary w-full justify-center"
-                    >
-                      Join Now
-                      <span className="material-icons ml-2 text-sm">arrow_forward</span>
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                    {isCompleted ? (
+                      <button className="bg-gray-400 text-white px-6 py-3 rounded-lg w-full cursor-not-allowed mt-4" disabled>
+                        Campaign Ended
+                      </button>
+                    ) : campaign.volunteersCurrent >= campaign.volunteersTarget ? (
+                      <button className="bg-red-100 text-red-600 px-6 py-3 rounded-lg w-full cursor-not-allowed mt-4 font-bold flex items-center justify-center" disabled>
+                        <span className="material-icons mr-2 text-sm">block</span>
+                        Slots Filled
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setSelectedCampaign(campaign)}
+                        className="btn-primary w-full justify-center mt-4"
+                      >
+                        Join Now
+                        <span className="material-icons ml-2 text-sm">arrow_forward</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
-      {selectedCampaign && (
-        <CampaignModal
-          campaign={selectedCampaign}
-          onClose={() => setSelectedCampaign(null)}
-        />
+      {
+        selectedCampaign && (
+          <CampaignModal
+            campaign={selectedCampaign}
+            onClose={() => setSelectedCampaign(null)}
+            onMessageOrganizer={handleMessageOrganizer}
+          />
+        )
+      }
+      
+      {/* Messaging Panel for non-dashboard pages (only for logged-in users) */}
+      {userRole && (
+        <>
+          {!isMessagingOpen && (
+            <button 
+              onClick={() => setIsMessagingOpen(true)}
+              className="fixed bottom-6 right-6 bg-teal-600 hover:bg-teal-700 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-40 transition transform hover:scale-105"
+            >
+              <span className="material-icons">chat</span>
+            </button>
+          )}
+          <MessagingPanel 
+            isOpen={isMessagingOpen} 
+            onClose={() => setIsMessagingOpen(false)} 
+            initialContactId={messageContactId}
+          />
+        </>
       )}
     </Layout>
   );

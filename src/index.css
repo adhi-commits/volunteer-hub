@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: 'Inter', sans-serif;
+@layer components {
+  .input-field {
+    @apply w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition;
+  }
+  .btn-primary {
+    @apply w-full bg-teal-600 text-white py-3 rounded-lg font-semibold hover:bg-teal-700 transition flex items-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  }
+  .role-card {
+    @apply relative border-2 rounded-xl p-4 hover:border-teal-500 transition cursor-pointer;
+  }
+  .role-card-content {
+    @apply flex flex-col items-center justify-center text-gray-600;
+  }
+  .role-card input:checked ~ .role-card-content {
+    @apply text-teal-600;
+  }
+  .error-message {
+    @apply text-red-500 text-xs mt-1 block;
+  }
 }

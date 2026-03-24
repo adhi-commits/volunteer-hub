@@ -1,48 +1,105 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { campaigns } from '../data/campaigns';
+
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
+import { api } from '../services/api';
+import type { Campaign } from '../types';
 
 const CampaignRegistration: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { toast, showToast } = useToast();
+    const [campaign, setCampaign] = useState<Campaign | null>(null);
+    const [loading, setLoading] = useState(true);
     const [isRegistered, setIsRegistered] = useState(false);
-    const [status, setStatus] = useState<'Pending' | 'Approved' | 'Participating' | null>(null);
-
-    const campaign = campaigns.find((c) => c.id === id);
+    const [status, setStatus] = useState<'Pending' | 'Approved' | 'Rejected' | 'Participating' | null>(null);
 
     const userRole = sessionStorage.getItem('userRole');
+    const userId = sessionStorage.getItem('userId');
 
     useEffect(() => {
-        // Check sessionStorage for joined campaigns
-        const joined = JSON.parse(sessionStorage.getItem('joinedCampaigns') || '[]');
+        const fetchCampaignDetails = async () => {
+            if (!id) return;
+            try {
+                // Fetch campaign details
+                const res = await fetch(api.campaigns.getDetails(id));
+                if (!res.ok) throw new Error('Campaign not found');
+                const data = await res.json();
 
-        if (joined.includes(id)) {
-            setIsRegistered(true);
-            // For demo, if it's in localStorage, we can say it's Pending unless hardcoded otherwise
-            setStatus('Pending');
-        }
+                // Map API response to Campaign type
+                const mapped: Campaign = {
+                    id: data.id.toString(),
+                    title: data.title,
+                    description: data.description,
+                    organization: `Organizer #${data.organizer_id}`,
+                    category: data.category as Campaign['category'],
+                    location: data.location,
+                    dateRange: `${new Date(data.start_date).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} - ${new Date(data.end_date).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+                    volunteersTarget: data.volunteers_target,
+                    volunteersCurrent: data.volunteers_current || 0,
+                    status: data.status as Campaign['status'],
+                };
+                setCampaign(mapped);
 
-        // Mock data overrides for demo
-        if (id === '1') {
-            setIsRegistered(true);
-            setStatus('Approved');
-        }
-    }, [id]);
+                // Check if user is registered for this campaign
+                if (userId) {
+                    const regRes = await fetch(`${api.campaigns.joined}?user_id=${userId}`);
+                    const regData = await regRes.json();
+                    const registration = regData.find((r: any) => r.id.toString() === id.toString());
 
-    const handleRegister = () => {
-        if (!userRole) {
+                    if (registration) {
+                        setIsRegistered(true);
+                        setStatus(registration.registration_status as any);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch campaign details:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCampaignDetails();
+    }, [id, userId]);
+
+    const handleRegister = async () => {
+        if (!userRole || !userId || !id) {
             navigate('/login');
             return;
         }
-        // Mock API call to register
-        showToast('Successfully registered for campaign!', 'success');
-        setIsRegistered(true);
-        setStatus('Pending');
+
+        try {
+            const res = await fetch(api.campaigns.join, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, campaign_id: id })
+            });
+
+            if (res.ok) {
+                showToast('Successfully registered for campaign!', 'success');
+                setIsRegistered(true);
+                setStatus('Pending');
+            } else {
+                const data = await res.json();
+                showToast(data.error || 'Failed to register', 'error');
+            }
+        } catch (error) {
+            showToast('Failed to register. Please try again.', 'error');
+        }
     };
+
+    if (loading) {
+        return (
+            <Layout>
+                <div className="pt-28 pb-16 container mx-auto px-6 text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading campaign details...</p>
+                </div>
+            </Layout>
+        );
+    }
 
     if (!campaign) {
         return (

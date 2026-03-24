@@ -5,7 +5,7 @@ const Footer: React.FC = () => {
   return (
     <footer className="bg-gray-900 text-gray-300 py-12">
       <div className="container mx-auto px-6">
-        <div className="grid md:grid-cols-4 gap-8 mb-8">
+        <div className="grid md:grid-cols-3 gap-8 mb-8">
           <div>
             <div className="flex items-center space-x-2 mb-4">
               <span className="material-icons text-teal-500 text-3xl">
@@ -42,31 +42,7 @@ const Footer: React.FC = () => {
               </li>
             </ul>
           </div>
-          <div>
-            <h4 className="text-white font-semibold mb-4">Support</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <a href="#" className="hover:text-teal-400 transition">
-                  Help Center
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-teal-400 transition">
-                  FAQs
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-teal-400 transition">
-                  Contact
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-teal-400 transition">
-                  Privacy Policy
-                </a>
-              </li>
-            </ul>
-          </div>
+
           <div>
             <h4 className="text-white font-semibold mb-4">Contact Us</h4>
             <ul className="space-y-2 text-sm">
@@ -74,19 +50,19 @@ const Footer: React.FC = () => {
                 <span className="material-icons text-teal-500 mr-2 text-sm">
                   email
                 </span>
-                support@volunteercollab.org
+                principal@stthomas.ac.in
               </li>
               <li className="flex items-center">
                 <span className="material-icons text-teal-500 mr-2 text-sm">
                   phone
                 </span>
-                +1 (555) 123-4567
+                +91 4872420435
               </li>
               <li className="flex items-center">
                 <span className="material-icons text-teal-500 mr-2 text-sm">
                   location_on
                 </span>
-                123 Charity Lane, New York, NY 10001
+                St.Thomas' College, Thrissur- 680001
               </li>
             </ul>
           </div>

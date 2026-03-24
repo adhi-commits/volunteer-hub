@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 
 type NavVariant = 'public' | 'dashboard';
 
@@ -7,8 +7,27 @@ interface Props {
   variant?: NavVariant;
 }
 
-const NavBar: React.FC<Props> = ({ variant = 'public' }) => {
+const NavBar: React.FC<Props> = ({ variant: manualVariant }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    sessionStorage.clear();
+    setDropdownOpen(false);
+    navigate('/login');
+    window.location.reload(); // Force reload to update navbar state
+  };
+
+  // Determine user status
+  const userRole = sessionStorage.getItem('userRole');
+
+  // Logic: If userRole exists, always use 'dashboard' style unless explicitly told otherwise
+  const activeVariant: NavVariant = userRole ? 'dashboard' : 'public';
+  
+  let dashboardTarget = '/dashboard';
+  if (userRole === 'organizer') dashboardTarget = '/organizer-dashboard';
+  if (userRole === 'admin') dashboardTarget = '/admin-dashboard';
 
   const publicLinks = [
     { to: '/', label: 'Home', icon: 'home' },
@@ -16,20 +35,28 @@ const NavBar: React.FC<Props> = ({ variant = 'public' }) => {
     { to: '/login', label: 'Login', icon: 'login' },
   ];
 
-  const userRole = sessionStorage.getItem('userRole');
-  const dashboardTarget = userRole === 'organizer' ? '/organizer-dashboard' : '/dashboard';
-
   const dashboardLinks = [
     { to: dashboardTarget, label: 'Dashboard', icon: 'dashboard' },
-    ...(userRole !== 'organizer' ? [{ to: '/campaigns', label: 'Campaigns', icon: 'campaign' }] : []),
-    { to: '/profile', label: 'Profile', icon: 'person' },
+    // Only volunteers get the Campaigns tab
+    ...(userRole === 'volunteer' ? [{ to: '/campaigns', label: 'Campaigns', icon: 'campaign' }] : []),
+    ...(userRole !== 'admin' ? [{ to: '/profile', label: 'Profile', icon: 'person' }] : []),
   ];
 
-  const links = variant === 'dashboard' ? dashboardLinks : publicLinks;
+  const links = activeVariant === 'dashboard' ? dashboardLinks : publicLinks;
 
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `${variant === 'dashboard' ? 'nav-link' : 'flex items-center text-gray-700 hover:text-teal-600 transition'} ${isActive ? 'text-teal-600 font-medium' : ''
-    }`;
+  const getLinkStyles = (isActive: boolean) => {
+    const baseClasses = "flex items-center transition-all duration-200 rounded-lg px-4 py-2 text-sm font-semibold";
+
+    if (activeVariant === 'dashboard') {
+      return isActive
+        ? `${baseClasses} bg-teal-600 text-white shadow-md` // Solid teal when active
+        : `${baseClasses} text-gray-600 hover:bg-teal-50 hover:text-teal-600`;
+    }
+
+    return isActive
+      ? `${baseClasses} text-teal-600 bg-teal-50`
+      : `${baseClasses} text-gray-700 hover:text-teal-600 hover:bg-gray-50`;
+  };
 
   return (
     <nav className="bg-white shadow-md fixed w-full top-0 z-50">
@@ -42,65 +69,92 @@ const NavBar: React.FC<Props> = ({ variant = 'public' }) => {
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center space-x-6">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-1">
             {links.map((item) => (
-              <NavLink key={item.to} to={item.to} className={linkClass}>
-                <span className="material-icons text-sm mr-1">{item.icon}</span>
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => getLinkStyles(isActive)}
+              >
+                <span className="material-icons text-lg mr-2">{item.icon}</span>
                 {item.label}
               </NavLink>
             ))}
-            {variant === 'public' && (
-              <Link to="/register" className="btn-primary">
-                Get Started
-              </Link>
-            )}
-            {variant === 'dashboard' && (
-              <div className="relative">
-                <button className="flex items-center space-x-2 text-gray-700 hover:text-teal-600 transition">
-                  <div className="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-bold">
-                    J
-                  </div>
-                  <span className="material-icons text-sm">arrow_drop_down</span>
-                </button>
-              </div>
-            )}
+
+            <div className="ml-4 pl-4 border-l border-gray-100 flex items-center">
+              {activeVariant === 'public' ? (
+                <Link to="/register" className="btn-primary ml-2">
+                  Get Started
+                </Link>
+              ) : (
+                <div className="relative ml-4">
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center space-x-2 group focus:outline-none"
+                  >
+                    <div className="w-9 h-9 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center font-bold border-2 border-teal-600 transition-transform group-hover:scale-105">
+                      {(sessionStorage.getItem('userName') || 'User').charAt(0).toUpperCase()}
+                    </div>
+                    <span className="material-icons text-gray-400 group-hover:text-teal-600 transition-transform duration-200" style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>arrow_drop_down</span>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {dropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-2 z-50 border border-gray-100 animate-fade-in-down">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-gray-800">Signed in as</p>
+                        <p className="text-xs text-gray-500 truncate">{sessionStorage.getItem('userName') || 'User'}</p>
+                      </div>
+
+                      {userRole !== 'admin' && (
+                        <Link
+                          to="/profile"
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-700 transition-colors"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <span className="material-icons text-sm mr-2">person</span>
+                          Your Profile
+                        </Link>
+                      )}
+
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <span className="material-icons text-sm mr-2">logout</span>
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          <button
-            aria-label="Toggle menu"
-            onClick={() => setMobileOpen((open) => !open)}
-            className="md:hidden text-gray-700"
-          >
-            <span className="material-icons text-3xl">menu</span>
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden text-gray-700 p-2">
+            <span className="material-icons text-3xl">{mobileOpen ? 'close' : 'menu'}</span>
           </button>
         </div>
       </div>
 
       {/* Mobile Menu */}
-      <div className={`${mobileOpen ? 'block' : 'hidden'} md:hidden bg-white border-t`}>
-        <div className="container mx-auto px-6 py-4 flex flex-col space-y-3">
+      <div className={`${mobileOpen ? 'block' : 'hidden'} md:hidden bg-white border-t border-gray-100`}>
+        <div className="container mx-auto px-6 py-6 flex flex-col space-y-2">
           {links.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `mobile-link ${isActive ? 'active' : ''}`
+                `flex items-center px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-teal-600 text-white shadow-lg' : 'text-gray-600 hover:bg-teal-50'
+                }`
               }
               onClick={() => setMobileOpen(false)}
             >
-              <span className="material-icons mr-2">{item.icon}</span>
+              <span className="material-icons mr-3">{item.icon}</span>
               {item.label}
             </NavLink>
           ))}
-          {variant === 'public' && (
-            <Link
-              to="/register"
-              className="bg-teal-600 text-white px-6 py-2 rounded-lg text-center"
-              onClick={() => setMobileOpen(false)}
-            >
-              Get Started
-            </Link>
-          )}
         </div>
       </div>
     </nav>

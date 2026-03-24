@@ -7,9 +7,11 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import OrganizerDashboard from './pages/OrganizerDashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import CreateCampaign from './pages/CreateCampaign';
 import CampaignVolunteers from './pages/CampaignVolunteers';
 import CampaignRegistration from './pages/CampaignRegistration';
+import Terms from './pages/Terms';
 
 const App: React.FC = () => {
   return (
@@ -21,9 +23,11 @@ const App: React.FC = () => {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/organizer-dashboard" element={<OrganizerDashboard />} />
+      <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/create-campaign" element={<CreateCampaign />} />
       <Route path="/campaign-volunteers/:id" element={<CampaignVolunteers />} />
       <Route path="/campaigns/:id/register" element={<CampaignRegistration />} />
+      <Route path="/terms" element={<Terms />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

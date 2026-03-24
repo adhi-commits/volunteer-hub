@@ -121,9 +121,8 @@ function togglePassword(inputId, iconId) {
 // Show Success Message
 function showMessage(message, type = "success") {
   const messageDiv = document.createElement("div");
-  messageDiv.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg ${
-    type === "success" ? "bg-green-500" : "bg-red-500"
-  } text-white transform transition-all duration-300`;
+  messageDiv.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-lg shadow-lg ${type === "success" ? "bg-green-500" : "bg-red-500"
+    } text-white transform transition-all duration-300`;
   messageDiv.textContent = message;
 
   document.body.appendChild(messageDiv);

@@ -1,23 +1,135 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { campaigns } from '../data/campaigns';
+import { api } from '../services/api';
+import type { Campaign } from '../types';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
+import MessagingPanel from '../components/MessagingPanel';
+
+interface VolunteerRegistration {
+    registration_id: number;
+    user_id: number;
+    name: string;
+    email: string;
+    phone: string;
+    skills?: string;
+    status: 'Pending' | 'Approved' | 'Rejected';
+    registered_at: string;
+}
 
 const CampaignVolunteers: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    // In a real app, we would fetch volunteers for the specific campaign ID
-    // For now, we'll mock some volunteers
-    const campaign = campaigns.find(c => c.id === id);
+    const [campaign, setCampaign] = useState<Campaign | null>(null);
+    const [volunteers, setVolunteers] = useState<VolunteerRegistration[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const volunteers = [
-        { id: 1, name: 'Sarah Johnson', email: 'sarah.j@example.com', phone: '+1 234 567 8900', status: 'Approved' },
-        { id: 2, name: 'Michael Chen', email: 'mike.c@example.com', phone: '+1 234 567 8901', status: 'Pending' },
-        { id: 3, name: 'Emma Davis', email: 'emma.d@example.com', phone: '+1 234 567 8902', status: 'Approved' },
-        { id: 4, name: 'James Wilson', email: 'james.w@example.com', phone: '+1 234 567 8903', status: 'Rejected' },
-    ];
+    const [isMessagingOpen, setIsMessagingOpen] = useState(false);
+    const [messageContactId, setMessageContactId] = useState<number | null>(null);
+
+    const { toast, showToast } = useToast();
+
+    const openContactMessage = (contactId: number) => {
+        setMessageContactId(contactId);
+        setIsMessagingOpen(true);
+    };
+
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!id) return;
+            try {
+                // Fetch Campaign details
+                const campRes = await fetch(api.campaigns.getDetails(id));
+                const campData = await campRes.json();
+                setCampaign(campData);
+
+                // Fetch Volunteers list
+                const volRes = await fetch(api.campaigns.getVolunteers(id));
+                const volData = await volRes.json();
+                setVolunteers(volData);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
+                showToast('Failed to load campaign data', 'error');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [id]);
+
+    const handleStatusUpdate = async (regId: number, newStatus: 'Approved' | 'Rejected') => {
+        try {
+            const res = await fetch(api.campaigns.updateStatus(regId), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (res.ok) {
+                // Update local state
+                setVolunteers(prev =>
+                    prev.map(v => v.registration_id === regId ? { ...v, status: newStatus } : v)
+                );
+                showToast(`Volunteer ${newStatus.toLowerCase()} successfully`, 'success');
+            } else {
+                showToast('Failed to update status', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating status:', error);
+            showToast('Error updating status', 'error');
+        }
+    };
+
+    const handleIssueCertificate = async (userId: number, file: File) => {
+        if (!campaign) {
+            console.error('Campaign object is missing');
+            showToast('Error: Campaign details missing', 'error');
+            return;
+        }
+
+        console.log('Uploading certificate for:', { userId, campaignId: campaign.id, file: file.name });
+
+        const formData = new FormData();
+        formData.append('certificate', file);
+        formData.append('user_id', userId.toString());
+        formData.append('campaign_id', campaign.id.toString());
+
+        try {
+            showToast('Uploading certificate...', 'success'); // Using success for info as per limitations
+            const res = await fetch(api.certificates.issue, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            console.log('Upload response:', data);
+
+            if (res.ok) {
+                showToast(`Certificate issued successfully!`, 'success');
+            } else {
+                showToast(data.message || 'Failed to issue certificate', 'error');
+            }
+        } catch (error) {
+            console.error('Error issuing certificate:', error);
+            showToast('Error uploading certificate', 'error');
+        }
+    };
+
+    if (loading) {
+        return (
+            <Layout variant="dashboard">
+                <div className="pt-28 pb-12 text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading volunteers list...</p>
+                </div>
+            </Layout>
+        );
+    }
 
     return (
         <Layout variant="dashboard">
+            <Toast toast={toast} />
             <section className="pt-28 pb-12 bg-gray-50 min-h-screen">
                 <div className="container mx-auto px-6">
                     <div className="mb-8 flex items-center justify-between">
@@ -45,28 +157,49 @@ const CampaignVolunteers: React.FC = () => {
                                     <tr>
                                         <th className="px-6 py-4 font-semibold text-gray-600">Name</th>
                                         <th className="px-6 py-4 font-semibold text-gray-600">Contact</th>
+                                        <th className="px-6 py-4 font-semibold text-gray-600">Skills</th>
                                         <th className="px-6 py-4 font-semibold text-gray-600">Status</th>
                                         <th className="px-6 py-4 font-semibold text-gray-600 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {volunteers.map((vol) => (
-                                        <tr key={vol.id} className="hover:bg-gray-50">
+                                        <tr key={vol.registration_id} className="hover:bg-gray-50">
                                             <td className="px-6 py-4">
                                                 <div className="font-semibold text-gray-800">{vol.name}</div>
-                                                <div className="text-xs text-gray-500">Registered 2 days ago</div>
+                                                <div className="text-xs text-gray-500">Registered on {new Date(vol.registered_at).toLocaleDateString()}</div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-sm text-gray-600">{vol.email}</div>
                                                 <div className="text-sm text-gray-600">{vol.phone}</div>
                                             </td>
                                             <td className="px-6 py-4">
+                                                {(() => {
+                                                    if (!vol.skills) return <span className="text-gray-400 italic text-sm">Not specified</span>;
+                                                    try {
+                                                        const skillsArray = JSON.parse(vol.skills);
+                                                        if (Array.isArray(skillsArray) && skillsArray.length > 0) {
+                                                            return (
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {skillsArray.map((skill: string, idx: number) => (
+                                                                        <span key={idx} className="bg-teal-50 border border-teal-200 text-teal-700 text-xs px-2 py-1 rounded-md">{skill}</span>
+                                                                    ))}
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return <span className="text-sm text-gray-600">{vol.skills}</span>;
+                                                    } catch (e) {
+                                                        return <span className="text-sm text-gray-600">{vol.skills}</span>;
+                                                    }
+                                                })()}
+                                            </td>
+                                            <td className="px-6 py-4">
                                                 <span
                                                     className={`px-3 py-1 rounded-full text-xs font-semibold ${vol.status === 'Approved'
-                                                            ? 'bg-green-100 text-green-700'
-                                                            : vol.status === 'Pending'
-                                                                ? 'bg-yellow-100 text-yellow-700'
-                                                                : 'bg-red-100 text-red-700'
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : vol.status === 'Pending'
+                                                            ? 'bg-yellow-100 text-yellow-700'
+                                                            : 'bg-red-100 text-red-700'
                                                         }`}
                                                 >
                                                     {vol.status}
@@ -74,14 +207,52 @@ const CampaignVolunteers: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        className="text-teal-600 hover:bg-teal-50 p-2 rounded-full"
+                                                        title="Message Volunteer"
+                                                        onClick={() => openContactMessage(vol.user_id)}
+                                                    >
+                                                        <span className="material-icons">chat</span>
+                                                    </button>
                                                     {vol.status === 'Pending' && (
                                                         <>
-                                                            <button className="text-green-600 hover:bg-green-50 p-2 rounded-full" title="Approve">
+                                                            <button
+                                                                className="text-green-600 hover:bg-green-50 p-2 rounded-full"
+                                                                title="Approve"
+                                                                onClick={() => handleStatusUpdate(vol.registration_id, 'Approved')}
+                                                            >
                                                                 <span className="material-icons">check</span>
                                                             </button>
-                                                            <button className="text-red-600 hover:bg-red-50 p-2 rounded-full" title="Reject">
+                                                            <button
+                                                                className="text-red-600 hover:bg-red-50 p-2 rounded-full"
+                                                                title="Reject"
+                                                                onClick={() => handleStatusUpdate(vol.registration_id, 'Rejected')}
+                                                            >
                                                                 <span className="material-icons">close</span>
                                                             </button>
+                                                        </>
+                                                    )}
+                                                    {vol.status === 'Approved' && (
+                                                        <>
+                                                            <input
+                                                                type="file"
+                                                                id={`cert-upload-${vol.user_id}`}
+                                                                className="hidden"
+                                                                accept="image/*,application/pdf"
+                                                                onChange={(e) => {
+                                                                    const file = e.target.files?.[0];
+                                                                    if (file) {
+                                                                        handleIssueCertificate(vol.user_id, file);
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <label
+                                                                htmlFor={`cert-upload-${vol.user_id}`}
+                                                                className="text-orange-500 hover:bg-orange-50 p-2 rounded-full transition cursor-pointer"
+                                                                title="Issue Certificate"
+                                                            >
+                                                                <span className="material-icons">card_membership</span>
+                                                            </label>
                                                         </>
                                                     )}
                                                     <button className="text-gray-400 hover:text-gray-600 p-2 rounded-full" title="More">
@@ -100,6 +271,12 @@ const CampaignVolunteers: React.FC = () => {
                     </div>
                 </div>
             </section>
+            
+            <MessagingPanel 
+                isOpen={isMessagingOpen} 
+                onClose={() => setIsMessagingOpen(false)} 
+                initialContactId={messageContactId}
+            />
         </Layout>
     );
 };

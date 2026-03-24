@@ -15,8 +15,26 @@ const Landing: React.FC = () => {
   return (
     <Layout variant={layoutVariant}>
       {/* Hero Section */}
-      <section className="pt-24 pb-16 bg-gradient-to-br from-teal-500 to-teal-700 text-white">
-        <div className="container mx-auto px-6 py-20">
+      <section className="relative pt-24 pb-16 bg-teal-900 text-white overflow-hidden">
+        {/* Background Image with Double Exposure Effect */}
+        <div className="absolute inset-0 z-0 bg-teal-900">
+          <img
+            src="/hero-bg.png"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.onerror = null;
+              target.src = 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?q=80&w=2000&auto=format&fit=crop';
+            }}
+            alt="Volunteers Background"
+            className="w-full h-full object-cover mix-blend-overlay opacity-80"
+          />
+          {/* Green Color Blended Overlay */}
+          <div className="absolute inset-0 bg-teal-700 mix-blend-multiply opacity-50"></div>
+          {/* Optional fallback gradient for text contrast at the bottom */}
+          <div className="absolute inset-0 bg-gradient-to-t from-teal-900 via-teal-900/40 to-transparent"></div>
+        </div>
+
+        <div className="relative z-10 container mx-auto px-6 py-20">
           <div className="text-center">
             <div className="inline-flex items-center bg-teal-400 bg-opacity-30 rounded-full px-4 py-2 mb-6">
               <span className="material-icons mr-2">auto_awesome</span>
@@ -56,22 +74,22 @@ const Landing: React.FC = () => {
               <div className="flex justify-center mb-3">
                 <span className="material-icons text-5xl">business</span>
               </div>
-              <div className="text-4xl font-bold mb-2">500+</div>
+              <div className="text-4xl font-bold mb-2">Managing</div>
               <div className="text-teal-100">Organizers</div>
             </div>
             <div className="text-center bg-white bg-opacity-10 backdrop-blur rounded-xl p-6">
               <div className="flex justify-center mb-3">
                 <span className="material-icons text-5xl">groups</span>
               </div>
-              <div className="text-4xl font-bold mb-2">10K+</div>
+              <div className="text-4xl font-bold mb-2">Growing</div>
               <div className="text-teal-100">Volunteers</div>
             </div>
             <div className="text-center bg-white bg-opacity-10 backdrop-blur rounded-xl p-6">
               <div className="flex justify-center mb-3">
                 <span className="material-icons text-5xl">favorite</span>
               </div>
-              <div className="text-4xl font-bold mb-2">1M+</div>
-              <div className="text-teal-100">Lives Impacted</div>
+              <div className="text-4xl font-bold mb-2">Driving</div>
+              <div className="text-teal-100">Impact</div>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { campaigns } from '../data/campaigns';
 import { certificates, userSkills, userStats } from '../data/profile';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
+import { api } from '../services/api';
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
@@ -25,11 +26,47 @@ const Profile: React.FC = () => {
     statusLabel: c.status
   }));
 
-  const issuedCertificates = [
-    { id: 1, title: 'Gold Volunteer Award', recipient: 'Alice Smith', date: '2025-12-10' },
-    { id: 2, title: 'Eco Warrior Badge', recipient: 'Bob Jones', date: '2025-11-20' },
-    { id: 3, title: 'Leadership Excellence', recipient: 'Charlie Brown', date: '2025-10-05' },
-  ];
+  const [issuedCertificates, setIssuedCertificates] = React.useState<any[]>([]);
+
+  // Fetch certificates from backend
+  React.useEffect(() => {
+    const fetchCertificates = async () => {
+      // For organizers, we might want to see certificates they issued (not implemented yet in backend for specific organizer, but we can reuse the user one if needed or skip)
+      // For volunteers, we fetch their received certificates
+      // The current backend route is /api/certificates/user/:userId
+
+      const userId = sessionStorage.getItem('userId'); // We need to ensure userId is stored in session
+      if (!userId) return; // Or handle appropriately
+
+      try {
+        const res = await fetch(api.certificates.getUserCertificates(userId));
+        if (res.ok) {
+          const data = await res.json();
+          // Map backend data to frontend structure
+          const mappedCerts = data.map((c: any) => ({
+            id: c.id,
+            title: c.campaign_title || 'Certificate of Appreciation',
+            recipient: sessionStorage.getItem('userName') || 'Volunteer', // In a real app the cert would have this
+            date: new Date(c.issued_at).toLocaleDateString(),
+            org: c.campaign_org || 'Volunteer Hub',
+            full_image_url: c.full_image_url,
+            colorClass: 'border-teal-500 bg-teal-50' // Default styling
+          }));
+          setIssuedCertificates(mappedCerts);
+        }
+      } catch (error) {
+        console.error('Failed to fetch certificates:', error);
+      }
+    };
+
+    if (userRole === 'volunteer') {
+      fetchCertificates();
+    }
+  }, [userRole]);
+
+
+
+
   const campaignHistory = [
     {
       ...campaigns[0],
@@ -83,10 +120,10 @@ const Profile: React.FC = () => {
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-teal-600 text-5xl font-bold shadow-xl">
-              J
+              {(sessionStorage.getItem('userName') || 'U').charAt(0).toUpperCase()}
             </div>
             <div className="text-center md:text-left flex-1">
-              <h1 className="text-4xl font-bold mb-2">John Doe</h1>
+              <h1 className="text-4xl font-bold mb-2">{sessionStorage.getItem('userName') || 'User'}</h1>
               <p className="text-teal-100 text-lg mb-3">
                 {userRole === 'organizer' ? 'Organizer • Community Leader' : 'Gold Volunteer • Computer Science Dept'}
               </p>
@@ -109,10 +146,7 @@ const Profile: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-4">
-              <button className="bg-white text-teal-600 px-6 py-3 rounded-lg font-semibold hover:bg-teal-50 transition flex items-center">
-                <span className="material-icons mr-2">edit</span>
-                Edit Profile
-              </button>
+
               <button
                 onClick={handleLogout}
                 className="bg-red-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-600 transition flex items-center shadow-lg"
@@ -331,22 +365,45 @@ const Profile: React.FC = () => {
                   </div>
                 ) : (
                   <div className="grid md:grid-cols-2 gap-4">
-                    {certificates.map((cert) => (
-                      <div
-                        key={cert.id}
-                        className={`border-2 rounded-lg p-4 hover:shadow-sm transition ${cert.colorClass}`}
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="material-icons text-4xl">workspace_premium</span>
-                          <button className="text-current hover:opacity-80">
-                            <span className="material-icons">download</span>
-                          </button>
+                    {issuedCertificates.length > 0 ? (
+                      issuedCertificates.map((cert) => (
+                        <div
+                          key={cert.id}
+                          className={`border-2 rounded-lg p-4 hover:shadow-md transition ${cert.colorClass} relative group`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            {/* Show image if available, else icon */}
+                            {cert.full_image_url ? (
+                              <div className="h-32 w-full mb-2 bg-gray-100 rounded overflow-hidden">
+                                <img src={cert.full_image_url} alt={cert.title} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <span className="material-icons text-4xl">workspace_premium</span>
+                            )}
+                          </div>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-bold text-gray-800 mb-1">{cert.title}</h4>
+                              <p className="text-sm text-gray-600 mb-2">{cert.org}</p>
+                              <p className="text-xs text-gray-500">{cert.date}</p>
+                            </div>
+                            {cert.full_image_url && (
+                              <a
+                                href={cert.full_image_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-teal-600 hover:bg-teal-50 p-2 rounded-full"
+                                title="Download/View"
+                              >
+                                <span className="material-icons">download</span>
+                              </a>
+                            )}
+                          </div>
                         </div>
-                        <h4 className="font-bold text-gray-800 mb-1">{cert.title}</h4>
-                        <p className="text-sm text-gray-600 mb-2">{cert.org}</p>
-                        <p className="text-xs text-gray-500">{cert.issued}</p>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="text-gray-500 col-span-2 text-center py-8">No certificates earned yet.</p>
+                    )}
                   </div>
                 )}
               </div>

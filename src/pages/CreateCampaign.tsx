@@ -14,7 +14,9 @@ const CreateCampaign: React.FC = () => {
         category: '',
         location: '',
         startDate: '',
+        startTime: '',
         endDate: '',
+        endTime: '',
         volunteersTarget: '',
     });
 
@@ -26,6 +28,25 @@ const CreateCampaign: React.FC = () => {
         e.preventDefault();
         const organizerId = sessionStorage.getItem('userId');
 
+        if (!form.startDate || !form.startTime || !form.endDate || !form.endTime) {
+            showToast('Please select both date and time', 'error');
+            return;
+        }
+
+        const start = new Date(`${form.startDate}T${form.startTime}`);
+        const end = new Date(`${form.endDate}T${form.endTime}`);
+        const now = new Date();
+
+        if (start < now) {
+            showToast('Campaign cannot start in the past', 'error');
+            return;
+        }
+
+        if (end < start) {
+            showToast('End date cannot be before start date', 'error');
+            return;
+        }
+
         if (!organizerId) {
             showToast('You must be logged in', 'error');
             return;
@@ -36,8 +57,14 @@ const CreateCampaign: React.FC = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ...form,
-                    organizerId
+                    title: form.title,
+                    description: form.description,
+                    category: form.category,
+                    location: form.location,
+                    start_date: `${form.startDate} ${form.startTime}:00`,
+                    end_date: `${form.endDate} ${form.endTime}:00`,
+                    volunteers_target: parseInt(form.volunteersTarget, 10),
+                    organizer_id: organizerId
                 })
             });
 
@@ -123,7 +150,7 @@ const CreateCampaign: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="grid md:grid-cols-3 gap-6">
+                            <div className="grid md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-gray-700 font-semibold mb-2">Start Date</label>
                                     <input
@@ -131,10 +158,25 @@ const CreateCampaign: React.FC = () => {
                                         name="startDate"
                                         className="input-field w-full"
                                         value={form.startDate}
+                                        min={new Date().toISOString().split('T')[0]}
                                         onChange={handleChange}
                                         required
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-gray-700 font-semibold mb-2">Start Time</label>
+                                    <input
+                                        type="time"
+                                        name="startTime"
+                                        className="input-field w-full"
+                                        value={form.startTime}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-6">
                                 <div>
                                     <label className="block text-gray-700 font-semibold mb-2">End Date</label>
                                     <input
@@ -142,22 +184,35 @@ const CreateCampaign: React.FC = () => {
                                         name="endDate"
                                         className="input-field w-full"
                                         value={form.endDate}
+                                        min={form.startDate}
                                         onChange={handleChange}
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-gray-700 font-semibold mb-2">Target Volunteers</label>
+                                    <label className="block text-gray-700 font-semibold mb-2">End Time</label>
                                     <input
-                                        type="number"
-                                        name="volunteersTarget"
+                                        type="time"
+                                        name="endTime"
                                         className="input-field w-full"
-                                        placeholder="e.g. 50"
-                                        value={form.volunteersTarget}
+                                        value={form.endTime}
                                         onChange={handleChange}
                                         required
                                     />
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-gray-700 font-semibold mb-2">Target Volunteers</label>
+                                <input
+                                    type="number"
+                                    name="volunteersTarget"
+                                    className="input-field w-full"
+                                    placeholder="e.g. 50"
+                                    value={form.volunteersTarget}
+                                    onChange={handleChange}
+                                    required
+                                />
                             </div>
 
                             <div className="pt-4 flex items-center justify-end gap-4">

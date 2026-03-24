@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { useToast } from '../hooks/useToast';
 import Toast from '../components/Toast';
-import { validateEmail } from '../utils/validation';
+import { validateEmail, validatePassword } from '../utils/validation';
 import { api } from '../services/api';
 
 interface LoginErrors {
@@ -14,7 +14,7 @@ interface LoginErrors {
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
-  const [role, setRole] = useState<'volunteer' | 'organizer'>('volunteer');
+  const [role, setRole] = useState<'volunteer' | 'organizer' | 'admin'>('volunteer');
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState<LoginErrors>({});
@@ -29,8 +29,10 @@ const Login: React.FC = () => {
       nextErrors.email = 'Please enter a valid email';
     }
 
-    if (!form.password.trim()) {
+    if (!form.password) {
       nextErrors.password = 'Password is required';
+    } else if (!validatePassword(form.password)) {
+      nextErrors.password = 'Password must meet complexity requirements';
     }
 
     setErrors(nextErrors);
@@ -62,7 +64,9 @@ const Login: React.FC = () => {
 
           showToast('Login successful! Redirecting...', 'success');
           setTimeout(() => {
-            if (role === 'organizer') {
+            if (role === 'admin') {
+              navigate('/admin-dashboard');
+            } else if (role === 'organizer') {
               navigate('/organizer-dashboard');
             } else {
               navigate('/dashboard');
@@ -95,6 +99,7 @@ const Login: React.FC = () => {
               {/* Role Selection Tabs */}
               <div className="flex p-1 bg-gray-100 rounded-lg mb-6">
                 <button
+                  type="button"
                   className={`flex-1 py-2 text-sm font-semibold rounded-md transition ${role === 'volunteer' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   onClick={() => setRole('volunteer')}
@@ -102,11 +107,20 @@ const Login: React.FC = () => {
                   Volunteer
                 </button>
                 <button
+                  type="button"
                   className={`flex-1 py-2 text-sm font-semibold rounded-md transition ${role === 'organizer' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   onClick={() => setRole('organizer')}
                 >
                   Organizer
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 py-2 text-sm font-semibold rounded-md transition ${role === 'admin' ? 'bg-white text-teal-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  onClick={() => setRole('admin')}
+                >
+                  Admin
                 </button>
               </div>
 
@@ -119,7 +133,7 @@ const Login: React.FC = () => {
                       type="email"
                       id="loginEmail"
                       name="email"
-                      className="input-field pl-10"
+                      className={`input-field pl-10 ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
                       placeholder="your@email.com"
                       value={form.email}
                       onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
@@ -136,7 +150,7 @@ const Login: React.FC = () => {
                       type="password"
                       id="loginPassword"
                       name="password"
-                      className="input-field pl-10"
+                      className={`input-field pl-10 pr-10 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
                       placeholder="Enter your password"
                       value={form.password}
                       onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
