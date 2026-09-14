@@ -1,14 +1,14 @@
 # Volunteer Hub
 
-A centralized **Volunteer Collaboration Platform** designed to connect student volunteers, organize volunteer activities, manage department-level groups, and track volunteer participation and hours.
+A centralized **Volunteer Collaboration Platform** designed to connect student volunteers, organize volunteer activities, manage department-level groups and track volunteer participation and hours.
 
 ## 📌 Overview
 
 **Volunteer Hub** is a web-based platform developed to simplify the management and coordination of student volunteer activities within an educational institution.
 
-Traditional volunteer management often relies on manual registration, communication through multiple platforms, and separate records for participation. Volunteer Hub brings these activities together into a single platform where volunteers can discover opportunities, join groups, manage their skills, and keep track of their contributions.
+Traditional volunteer management often relies on manual registration, communication through multiple platforms, and separate records for participation. Volunteer Hub brings these activities together into a single platform where volunteers can discover opportunities, join groups, manage their skills and keep track of their contributions.
 
-The platform is designed to improve **collaboration, organization, transparency, and participation** among student volunteers.
+The platform is designed to improve **collaboration, organization, transparency and participation** among student volunteers.
 
 ## ✨ Key Features
 
@@ -66,7 +66,7 @@ The main objectives of Volunteer Hub are to:
 
 1. Create a centralized platform for managing volunteer activities.
 2. Simplify volunteer registration and participation.
-3. Organize volunteers according to departments, groups, and skills.
+3. Organize volunteers according to departments, groups and skills.
 4. Improve communication and collaboration among volunteers.
 5. Maintain accurate records of volunteer participation.
 6. Track and recognize volunteer contributions through volunteer hours.
@@ -76,11 +76,11 @@ The main objectives of Volunteer Hub are to:
 
 ### 1. User Management
 
-Handles user registration, login, profiles, and account-related operations.
+Handles user registration, login, profiles and account-related operations.
 
 ### 2. Volunteer Management
 
-Allows volunteers to maintain their profiles, skills, interests, and participation information.
+Allows volunteers to maintain their profiles, skills, interests and participation information.
 
 ### 3. Group Management
 
@@ -88,7 +88,7 @@ Enables administrators or organizers to create and manage department-level volun
 
 ### 4. Event & Activity Management
 
-Provides functionality for creating, organizing, and managing volunteer activities.
+Provides functionality for creating, organizing and managing volunteer activities.
 
 ### 5. Skill Management
 
@@ -100,7 +100,7 @@ Records and manages the hours contributed by volunteers during different activit
 
 ### 7. Administration
 
-Provides administrative functionality for managing users, groups, activities, and volunteer records.
+Provides administrative functionality for managing users, groups, activities and volunteer records.
 
 ## 🔄 How It Works
 
@@ -149,7 +149,7 @@ Participation History Maintained
 
 ## 🗄️ Database
 
-The application uses a relational database to manage users, volunteer groups, skills, activities, participation records, and volunteer hours.
+The application uses a relational database to manage users, volunteer groups, skills, activities, participation records and volunteer hours.
 
 The database is designed to maintain data consistency and reduce unnecessary duplication through appropriate database normalization.
 
@@ -192,7 +192,7 @@ The project can be tested using different software testing techniques, including
 * Decision Table Testing
 * State-Based Testing
 
-Testing focuses on ensuring that volunteer registration, authentication, group management, activity participation, and volunteer-hour tracking function correctly.
+Testing focuses on ensuring that volunteer registration, authentication, group management, activity participation and volunteer-hour tracking function correctly.
 
 ## 🔐 Security Considerations
 
@@ -220,7 +220,7 @@ Possible future improvements include:
 
 ## 👨‍💻 Project Purpose
 
-Volunteer Hub was developed as an **academic project** to demonstrate the application of software engineering, database management, web development, and system design concepts to a real-world problem.
+Volunteer Hub was developed as an **academic project** to demonstrate the application of software engineering, database management, web development and system design concepts to a real-world problem.
 
 The project focuses on creating a structured digital solution for improving volunteer coordination and management within an educational environment.
 
