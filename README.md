@@ -6,7 +6,7 @@ A centralized **Volunteer Collaboration Platform** designed to connect student v
 
 **Volunteer Hub** is a web-based platform developed to simplify the management and coordination of student volunteer activities within an educational institution.
 
-Traditional volunteer management often relies on manual registration, communication through multiple platforms, and separate records for participation. Volunteer Hub brings these activities together into a single platform where volunteers can discover opportunities, join groups, manage their skills and keep track of their contributions.
+Traditional volunteer management often relies on manual registration, communication through multiple platforms and separate records for participation. Volunteer Hub brings these activities together into a single platform where volunteers can discover opportunities, join groups, manage their skills and keep track of their contributions.
 
 The platform is designed to improve **collaboration, organization, transparency and participation** among student volunteers.
 
@@ -228,7 +228,7 @@ The project focuses on creating a structured digital solution for improving volu
 
 This project is developed for academic and educational purposes.
 
-If a specific open-source license is required, an appropriate license can be added to the repository.
+If a specific open-source license is required and an appropriate license can be added to the repository.
 
 ---
 
