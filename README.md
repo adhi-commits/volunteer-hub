@@ -62,7 +62,7 @@ The platform is designed to improve **collaboration, organization, transparency 
 
 ## 🎯 Objectives
 
-The main objectives of Volunteer Hub are to:
+The main objectives of Volunteer Hub is to:
 
 1. Create a centralized platform for managing volunteer activities.
 2. Simplify volunteer registration and participation.
