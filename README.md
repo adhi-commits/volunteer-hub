@@ -174,8 +174,6 @@ Volunteer-Hub/
 └── ...
 ```
 
-> The structure may vary depending on the final implementation.
-
 ## 🧪 Testing
 
 The project can be tested using different software testing techniques, including:
