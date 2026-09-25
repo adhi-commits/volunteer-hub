@@ -124,8 +124,6 @@ Participation History Maintained
 
 ## 💻 Technologies Used
 
-> Update this section if your final implementation uses different technologies.
-
 **Frontend**
 
 * React
